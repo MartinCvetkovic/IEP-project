@@ -37,7 +37,11 @@ def update():
                     return jsonify(message=f"Incorrect price on line {i}."), 400
             except ValueError:
                 return jsonify(message=f"Incorrect price on line {i}."), 400
+            i += 1
 
+        reader = csv.reader(io.StringIO(content))
+
+        for row in reader:
             product = {"name": row[1], "quantity": row[2], "price": row[3]}
             categories = []
             for category in row[0].split("|"):
@@ -45,7 +49,6 @@ def update():
                 categories.append(category)
             product["categories"] = categories
             redis.rpush(Configuration.REDIS_BUFFER_LIST, product.__repr__())
-            i += 1
 
     return Response(status=200)
 

@@ -3,7 +3,7 @@ from flask_jwt_extended import JWTManager, get_jwt
 from sqlalchemy import and_
 from roleCheck import roleCheck
 from applications.configuration import Configuration
-from applications.models import database, Product, Category, ProductOrder, Order
+from applications.models import database, Product, Category, ProductOrder, Order, ProductCategory
 from datetime import datetime
 
 application = Flask(__name__)
@@ -19,14 +19,27 @@ def search():
 
     result = {}
 
-    if name != "":
-        products = Product.query.filter(Product.name.like("%" + name + "%")).all()
-    else:
-        products = Product.query.all()
-    if category != "":
-        categories = Category.query.filter(Category.name.like("%" + category + "%")).all()
-    else:
-        categories = Category.query.all()
+    products = Product.query.outerjoin(
+        ProductCategory
+    ).outerjoin(
+        Category
+    ).filter(
+        and_(
+            Product.name.like("%" + name + "%"),
+            Category.name.like("%" + category + "%")
+        )
+    ).all()
+
+    categories = Category.query.outerjoin(
+        ProductCategory
+    ).outerjoin(
+        Product
+    ).filter(
+        and_(
+            Product.name.like("%" + name + "%"),
+            Category.name.like("%" + category + "%")
+        )
+    ).all()
 
     productList = []
     categoryList = []
@@ -107,7 +120,6 @@ def order():
     database.session.commit()
 
     for product in products:
-
         req = productRequests.pop(0)
 
         prodOrd = ProductOrder(
@@ -142,8 +154,8 @@ def status():
             for category in product.categories:
                 prodCats.append(category.name)
             relation = ProductOrder.query.filter(and_(
-                    ProductOrder.orderId == orderObj.id,
-                    ProductOrder.productId == product.id)
+                ProductOrder.orderId == orderObj.id,
+                ProductOrder.productId == product.id)
             ).first()
             productDict = {
                 "categories": prodCats,
