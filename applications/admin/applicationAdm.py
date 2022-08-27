@@ -1,5 +1,5 @@
 from flask import Flask, jsonify
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, asc
 from applications.configuration import Configuration
 from applications.models import database, Category, ProductOrder, Product, ProductCategory
 from roleCheck import roleCheck
@@ -15,7 +15,7 @@ jwt = JWTManager(application)
 def productStatistics():
     res = database.session.query(
         Product.name,
-        func.sum(ProductOrder.receivedQuantity).label('sold'),
+        func.sum(ProductOrder.requestedQuantity).label('sold'),
         (func.sum(ProductOrder.requestedQuantity) - func.sum(ProductOrder.receivedQuantity)).label('waiting')
     ).filter(
         Product.id == ProductOrder.productId
@@ -39,10 +39,10 @@ def categoryStatistics():
         Product
     ).outerjoin(
         ProductOrder
-    ).order_by(
-        desc(func.sum(ProductOrder.receivedQuantity)), Category.name
     ).group_by(
-        Category.id, Category.name
+        Category.id
+    ).order_by(
+        desc(func.sum(ProductOrder.requestedQuantity)), asc(Category.name)
     ).all()
 
     res = []

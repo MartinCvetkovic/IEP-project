@@ -85,17 +85,26 @@ def order():
         reqQuantity = req.get("quantity", "")
         if reqQuantity == "":
             return jsonify(message=f"Product quantity is missing for request number {i}."), 400
-        if int(reqId) <= 0:
+        try:
+            if int(reqId) <= 0:
+                return jsonify(message=f"Invalid product id for request number {i}."), 400
+        except ValueError:
             return jsonify(message=f"Invalid product id for request number {i}."), 400
-        if int(reqQuantity) <= 0:
+        try:
+            if int(reqQuantity) <= 0:
+                return jsonify(message=f"Invalid product quantity for request number {i}."), 400
+        except ValueError:
             return jsonify(message=f"Invalid product quantity for request number {i}."), 400
         reqId = int(reqId)
-        reqQuantity = int(reqQuantity)
         product = Product.query.filter(Product.id == reqId).first()
         if product is None:
             return jsonify(message=f"Invalid product for request number {i}."), 400
         products.append(product)
+        i += 1
 
+    for index, req in enumerate(requests):
+        product = products[index]
+        reqQuantity = int(req.get("quantity", ""))
         overallPrice += reqQuantity * product.price
         availableQuantity = product.quantity
         if availableQuantity < reqQuantity:
@@ -106,9 +115,8 @@ def order():
             product.quantity -= reqQuantity
             fulfilledQuantity = reqQuantity
 
+        database.session.commit()
         productRequests.append({"fulfilledQuantity": fulfilledQuantity, "reqQuantity": reqQuantity})
-
-        i += 1
 
     orderObj = Order(
         overallPrice=overallPrice,
@@ -149,8 +157,8 @@ def status():
             'products': []
         }
 
-        prodCats = []
         for product in orderObj.products:
+            prodCats = []
             for category in product.categories:
                 prodCats.append(category.name)
             relation = ProductOrder.query.filter(and_(

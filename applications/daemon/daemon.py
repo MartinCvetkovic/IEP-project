@@ -15,9 +15,9 @@ if not database_exists(application.config["SQLALCHEMY_DATABASE_URI"]):
 
 database.init_app(application)
 
-with application.app_context() as context:
-    with Redis(host=Configuration.REDIS_HOST) as redis:
-        while True:
+while True:
+    with application.app_context() as context:
+        with Redis(host=Configuration.REDIS_HOST) as redis:
             result = redis.blpop(Configuration.REDIS_BUFFER_LIST)[1].decode("utf-8")
             if result.find("{") == -1:
                 if Category.query.filter(Category.name == result).first() is None:
