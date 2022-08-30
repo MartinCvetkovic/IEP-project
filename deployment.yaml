@@ -1,0 +1,89 @@
+version: '3'
+
+services:
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+  authDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+    volumes:
+    - authdbdata:/var/lib/mysql
+  authDBMigration:
+    image: authdbmigration
+    environment:
+      - DATABASE_URL=authdb
+    depends_on:
+      authDB:
+        condition: service_healthy
+  authentication:
+    image: authentication
+    environment:
+      - DATABASE_URL=authdb
+    depends_on:
+      - authDBMigration
+    ports:
+    - "5000:5000"
+  marketDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 10
+    volumes:
+      - marketdbdata:/var/lib/mysql
+  marketDBMigration:
+    image: marketdbmigration
+    environment:
+      - DATABASE_URL=marketdb
+    depends_on:
+      marketDB:
+        condition: service_healthy
+  admin:
+    image: admin
+    environment:
+      - DATABASE_URL=marketdb
+    depends_on:
+      - marketDBMigration
+    ports:
+    - "5001:5001"
+  customer:
+    image: customer
+    environment:
+      - DATABASE_URL=marketdb
+    depends_on:
+      - marketDBMigration
+    ports:
+    - "5002:5002"
+  redis:
+    image: redis
+  employee:
+    image: employee
+    environment:
+      - DATABASE_URL=marketdb
+      - REDIS_HOST=redis
+    depends_on:
+      - marketDBMigration
+      - redis
+    ports:
+    - "5003:5003"
+  daemon:
+    image: daemon
+    environment:
+      - DATABASE_URL=marketdb
+      - REDIS_HOST=redis
+    depends_on:
+      - marketDBMigration
+      - redis
+
+volumes:
+  authdbdata:
+  marketdbdata:
