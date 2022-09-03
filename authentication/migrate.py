@@ -9,32 +9,39 @@ application.config.from_object(Configuration)
 
 migrateObject = Migrate(application, database)
 
-if not database_exists(application.config["SQLALCHEMY_DATABASE_URI"]):
-    create_database(application.config["SQLALCHEMY_DATABASE_URI"])
+done = False
+while not done:
+    try:
+        if not database_exists(application.config["SQLALCHEMY_DATABASE_URI"]):
+            create_database(application.config["SQLALCHEMY_DATABASE_URI"])
 
-database.init_app(application)
+        database.init_app(application)
 
-with application.app_context() as context:
-    init()
-    migrate(message="Production migration")
-    upgrade()
+        with application.app_context() as context:
+            init()
+            migrate(message="Production migration")
+            upgrade()
 
-    adminRole = Role(name="admin")
-    cutomerRole = Role(name="customer")
-    employeeRole = Role(name="employee")
+            adminRole = Role(name="admin")
+            cutomerRole = Role(name="customer")
+            employeeRole = Role(name="employee")
 
-    database.session.add(adminRole)
-    database.session.add(cutomerRole)
-    database.session.add(employeeRole)
-    database.session.commit()
+            database.session.add(adminRole)
+            database.session.add(cutomerRole)
+            database.session.add(employeeRole)
+            database.session.commit()
 
-    admin = User(
-        email="admin@admin.com",
-        password="1",
-        firstname="admin",
-        lastname="admin",
-        roleId=1
-    )
+            admin = User(
+                email="admin@admin.com",
+                password="1",
+                firstname="admin",
+                lastname="admin",
+                roleId=1
+            )
 
-    database.session.add(admin)
-    database.session.commit()
+            database.session.add(admin)
+            database.session.commit()
+
+        done = True
+    except Exception as error:
+        print(error)
